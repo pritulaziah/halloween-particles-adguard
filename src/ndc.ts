@@ -1,6 +1,6 @@
 export interface NormalizedDeviceCoordinates {
-  x: number
-  y: number
+  x: number;
+  y: number;
 }
 
 export function toNormalizedDeviceCoordinates(
@@ -12,5 +12,5 @@ export function toNormalizedDeviceCoordinates(
   return {
     x: (clientX / width) * 2 - 1,
     y: -(clientY / height) * 2 + 1,
-  }
+  };
 }
