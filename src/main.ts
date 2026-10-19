@@ -1,6 +1,5 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Inspector } from 'three/addons/inspector/Inspector.js';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { film } from 'three/addons/tsl/display/FilmNode.js';
 import {
@@ -69,9 +68,6 @@ renderer.setSize(sizes.width, sizes.height, false);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0x252028);
 
-const inspector = new Inspector();
-renderer.inspector = inspector;
-
 await renderer.init();
 
 window.addEventListener('resize', () => {
@@ -100,13 +96,6 @@ const filmPass = film(scenePassColor.add(bloomPass), filmIntensity);
 
 renderPipeline.outputNode = filmPass;
 
-const bloomGui = inspector.createParameters('Bloom').close();
-bloomGui.add(bloomPass.threshold, 'value', 0, 2, 0.01).name('threshold');
-bloomGui.add(bloomPass.strength, 'value', 0, 2, 0.01).name('strength');
-
-const filmGui = inspector.createParameters('Film').close();
-filmGui.add(filmIntensity, 'value', 0, 1, 0.01).name('intensity');
-
 /**
  * Lights
  */
@@ -125,14 +114,6 @@ scene.add(directionalLight);
 
 const ambientLight = new THREE.AmbientLight(0xe8b8ff, 0.08);
 scene.add(ambientLight);
-
-const lightsGui = inspector.createParameters('Lights').close();
-
-lightsGui.addColor(directionalLight, 'color').name('directionalColor');
-lightsGui.add(directionalLight, 'intensity', 0, 5, 0.01).name('directionalIntensity');
-
-lightsGui.addColor(ambientLight, 'color').name('ambientColor');
-lightsGui.add(ambientLight, 'intensity', 0, 5, 0.01).name('ambientIntensity');
 
 /**
  * Cursor
@@ -279,16 +260,25 @@ mesh.frustumCulled = false;
 mesh.count = count;
 scene.add(mesh);
 
-const pumpkinsGui = inspector.createParameters('Pumpkins');
-pumpkinsGui.add(radius, 'value', 0, 0.5, 0.001).name('radius');
-pumpkinsGui.add(pumpkinSize, 'value', 0.5, 3, 0.01).name('pumpkinSize');
-pumpkinsGui.add(gravityStrength, 'value', 0, 0.1, 0.001).name('gravityStrength');
-pumpkinsGui.add(impactDamping, 'value', 0, 1, 0.001).name('impactDamping');
-pumpkinsGui.add(generalDamping, 'value', 0, 1, 0.01).name('generalDamping');
-pumpkinsGui.add(heatDamping, 'value', 0, 10, 0.1).name('heatDamping');
-pumpkinsGui.add(heatImpactStrength, 'value', 0, 100, 0.1).name('heatImpactStrength');
-pumpkinsGui.add(cursorRadius, 'value', 0, 5, 0.001).name('cursorRadius');
-pumpkinsGui.add(cursorStrength, 'value', 0, 0.2, 0.001).name('cursorStrength');
+if (import.meta.env.DEV) {
+  const { setupDebug } = await import('./debug');
+
+  setupDebug(renderer, {
+    bloomPass,
+    filmIntensity,
+    directionalLight,
+    ambientLight,
+    radius,
+    pumpkinSize,
+    gravityStrength,
+    impactDamping,
+    generalDamping,
+    heatDamping,
+    heatImpactStrength,
+    cursorRadius,
+    cursorStrength,
+  });
+}
 
 /**
  * Animate
