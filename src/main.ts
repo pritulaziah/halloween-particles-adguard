@@ -20,6 +20,8 @@ import {
   vec3,
 } from 'three/tsl';
 import './style.css';
+import { createBats } from './bats';
+import { createGhosts } from './ghosts';
 import { toNormalizedDeviceCoordinates } from './ndc';
 import { loadPumpkin } from './pumpkin';
 import { createWordTargets } from './word-targets';
@@ -228,7 +230,7 @@ const updateCompute = Fn(() => {
 /**
  * Particles mesh
  */
-const pumpkin = await loadPumpkin(`${import.meta.env.BASE_URL}models/pumpkin/pumpkin-carved.glb`);
+const pumpkin = await loadPumpkin(`${import.meta.env.BASE_URL}models/pumpkin-carved.glb`);
 
 const geometry = pumpkin.geometry;
 const material = new THREE.MeshLambertNodeMaterial({
@@ -260,6 +262,9 @@ mesh.frustumCulled = false;
 mesh.count = count;
 scene.add(mesh);
 
+const ghosts = await createGhosts(scene, camera);
+const bats = createBats(scene, camera);
+
 if (import.meta.env.DEV) {
   const { setupDebug } = await import('./debug');
 
@@ -283,8 +288,18 @@ if (import.meta.env.DEV) {
 /**
  * Animate
  */
-const tick = () => {
+const timer = new THREE.Timer();
+timer.connect(document);
+
+const tick = (timestamp: number) => {
   controls.update();
+
+  timer.update(timestamp);
+  const delta = timer.getDelta();
+  const elapsed = timer.getElapsed();
+
+  ghosts.update(delta, elapsed);
+  bats.update(elapsed);
 
   raycaster.setFromCamera(cursor, camera);
   const planeNormal = camera.position.clone().normalize();
