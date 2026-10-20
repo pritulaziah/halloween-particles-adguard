@@ -111,16 +111,16 @@ function createBat(config: BatConfig): BatInstance {
 export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
   const configs: BatConfig[] = [
     {
-      center: new THREE.Vector3(0, 2.2, 7),
-      radius: 3,
+      center: new THREE.Vector3(0, 3.4, 6),
+      radius: 2,
       speed: 0.7,
       phase: 0,
-      bob: 0.4,
+      bob: 0.15,
       bobSpeed: 1.4,
       scale: 1.6,
     },
     {
-      center: new THREE.Vector3(-2.5, 2, 6.5),
+      center: new THREE.Vector3(-8.9, 2.3, 7.5),
       radius: 0.8,
       speed: -0.8,
       phase: 1.2,
@@ -129,7 +129,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       scale: 1.45,
     },
     {
-      center: new THREE.Vector3(2.5, 1.8, 6.5),
+      center: new THREE.Vector3(7.1, 1.6, 8.5),
       radius: 0.9,
       speed: 0.75,
       phase: 2.4,
