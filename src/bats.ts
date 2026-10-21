@@ -222,7 +222,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       fleeDirection: new THREE.Vector3(0, 1, 0.6),
     },
     {
-      center: new THREE.Vector3(-8.9, 2.3, 7.5),
+      center: new THREE.Vector3(-11.9, -1.5, 2.5),
       radius: 0.8,
       speed: -0.8,
       phase: 1.2,
