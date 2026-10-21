@@ -57,6 +57,8 @@ scene.add(camera);
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0, 0);
 controls.enableDamping = true;
+// The target is at the origin, so this also limits the camera z to 60.
+controls.maxDistance = 60;
 
 /**
  * Renderer
@@ -95,7 +97,7 @@ const bloomPass = bloom(scenePassColor);
 bloomPass.threshold.value = 0;
 bloomPass.strength.value = 0.2;
 
-const filmIntensity = uniform(0.1);
+const filmIntensity = uniform(0.2);
 const filmPass = film(scenePassColor.add(bloomPass), filmIntensity);
 
 renderPipeline.outputNode = filmPass;
