@@ -19,9 +19,9 @@ import {
   uv,
   vec3,
 } from 'three/tsl';
-import './style.css';
 import { createBats } from './bats';
 import { createGhosts } from './ghosts';
+import { setupMusicToggle } from './music';
 import { toNormalizedDeviceCoordinates } from './ndc';
 import { loadPumpkin } from './pumpkin';
 import { createWordTargets } from './word-targets';
@@ -31,6 +31,8 @@ const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 if (!canvas) {
   throw new Error('Canvas element not found');
 }
+
+setupMusicToggle();
 
 /**
  * Scene

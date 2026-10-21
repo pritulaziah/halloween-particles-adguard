@@ -5,11 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#252028" />
     <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+    <link rel="stylesheet" href="/src/style.css" />
     <title>ADGUARD Particles</title>
   </head>
   <body>
     <div id="app">
       <canvas id="scene"></canvas>
+      <button
+        class="music-toggle"
+        id="music-toggle"
+        type="button"
+        aria-label="Play music"
+        aria-pressed="false"
+        title="Play music"
+      >
+        <img
+          class="music-toggle__icon music-toggle__icon--off"
+          src="/icons/music-off.svg"
+          alt=""
+          aria-hidden="true"
+        />
+        <img
+          class="music-toggle__icon music-toggle__icon--on"
+          src="/icons/music-on.svg"
+          alt=""
+          aria-hidden="true"
+        />
+      </button>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

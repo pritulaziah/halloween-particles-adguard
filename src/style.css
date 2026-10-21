@@ -26,3 +26,89 @@ body {
   height: 100%;
   outline: none;
 }
+
+.music-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgb(185 167 255 / 0.35);
+  border-radius: 50%;
+  background: rgb(37 32 40 / 0.72);
+  color: #e9dcff;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.music-toggle:hover {
+  border-color: rgb(185 167 255 / 0.8);
+  background: rgb(52 44 58 / 0.85);
+  box-shadow: 0 0 18px rgb(185 167 255 / 0.35);
+}
+
+/* In DEV the Inspector uses the top-right corner. */
+.music-toggle.music-toggle--dev {
+  top: auto;
+  right: auto;
+  bottom: 20px;
+  left: 20px;
+}
+
+.music-toggle:focus-visible {
+  outline: 2px solid #b9a7ff;
+  outline-offset: 3px;
+}
+
+.music-toggle:active {
+  transform: scale(0.94);
+}
+
+.music-toggle__icon {
+  grid-area: 1 / 1;
+  width: 22px;
+  height: 22px;
+  filter: invert(1);
+  opacity: 0.9;
+}
+
+.music-toggle[aria-pressed='true'] .music-toggle__icon {
+  filter: invert(1) drop-shadow(0 0 6px rgb(185 167 255 / 0.7));
+}
+
+.music-toggle__icon--on {
+  display: none;
+}
+
+.music-toggle[aria-pressed='true'] .music-toggle__icon--on {
+  display: block;
+}
+
+.music-toggle[aria-pressed='true'] .music-toggle__icon--off {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .music-toggle {
+    top: 14px;
+    right: 14px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .music-toggle.music-toggle--dev {
+    top: auto;
+    right: auto;
+    bottom: 14px;
+    left: 14px;
+  }
+}
