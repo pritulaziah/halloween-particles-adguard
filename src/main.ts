@@ -143,10 +143,10 @@ const cursorHelper = new THREE.Mesh(
 /**
  * Word particles
  */
-const count = 10000;
+const count = 8000;
 const targets = createWordTargets('ADGUARD', {
   count,
-  depth: 1.6,
+  depth: 1.1,
   worldWidth: 15.5,
   heightScale: 1.5,
 });
