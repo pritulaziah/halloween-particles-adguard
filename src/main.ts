@@ -299,9 +299,12 @@ const tick = (timestamp: number) => {
   const elapsed = timer.getElapsed();
 
   ghosts.update(delta, elapsed);
-  bats.update(elapsed);
+  bats.update(delta);
 
+  scene.updateMatrixWorld();
   raycaster.setFromCamera(cursor, camera);
+  ghosts.setHover(raycaster);
+  bats.setHover(raycaster);
   const planeNormal = camera.position.clone().normalize();
   const plane = new THREE.Plane(planeNormal, 0);
 
