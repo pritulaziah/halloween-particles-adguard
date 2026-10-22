@@ -1,17 +1,14 @@
 import type * as THREE from 'three/webgpu';
 import { Inspector } from 'three/addons/inspector/Inspector.js';
-import type BloomNode from 'three/addons/tsl/display/BloomNode.js';
+import type { Atmosphere } from './atmosphere';
 
 interface NumberUniform {
   value: number;
 }
 
 interface DebugOptions {
-  bloomPass: BloomNode;
   filmIntensity: NumberUniform;
-  directionalLight: THREE.DirectionalLight;
-  ambientLight: THREE.AmbientLight;
-  radius: NumberUniform;
+  atmosphere: Atmosphere;
   pumpkinSize: NumberUniform;
   gravityStrength: NumberUniform;
   impactDamping: NumberUniform;
@@ -26,21 +23,44 @@ export function setupDebug(renderer: THREE.WebGPURenderer, options: DebugOptions
   const inspector = new Inspector();
   renderer.inspector = inspector;
 
-  const bloomGui = inspector.createParameters('Bloom').close();
-  bloomGui.add(options.bloomPass.threshold, 'value', 0, 2, 0.01).name('threshold');
-  bloomGui.add(options.bloomPass.strength, 'value', 0, 2, 0.01).name('strength');
-
   const filmGui = inspector.createParameters('Film').close();
   filmGui.add(options.filmIntensity, 'value', 0, 1, 0.01).name('intensity');
 
-  const lightsGui = inspector.createParameters('Lights').close();
-  lightsGui.addColor(options.directionalLight, 'color').name('directionalColor');
-  lightsGui.add(options.directionalLight, 'intensity', 0, 5, 0.01).name('directionalIntensity');
-  lightsGui.addColor(options.ambientLight, 'color').name('ambientColor');
-  lightsGui.add(options.ambientLight, 'intensity', 0, 5, 0.01).name('ambientIntensity');
+  const sky = options.atmosphere.sky;
+  const skyGui = inspector.createParameters('Sky').close();
+  skyGui.addColor(sky.horizonColor, 'value').name('horizonColor');
+  skyGui.addColor(sky.zenithColor, 'value').name('zenithColor');
+  skyGui.addColor(sky.nadirColor, 'value').name('nadirColor');
+  skyGui.add(sky.horizonStart, 'value', -1, 0.5, 0.01).name('horizonStart');
+  skyGui.add(sky.horizonEnd, 'value', -0.5, 0.5, 0.01).name('horizonEnd');
+  skyGui.add(sky.zenithEnd, 'value', 0.1, 1.5, 0.01).name('zenithEnd');
+  skyGui.addColor(sky.moonGlowColor, 'value').name('moonGlowColor');
+  skyGui.add(sky.moonGlowStrength, 'value', 0, 1, 0.01).name('moonGlowStrength');
+  skyGui.add(sky.moonGlowExponent, 'value', 1, 512, 1).name('moonGlowExponent');
+
+  const moon = options.atmosphere.moon;
+  const moonGui = inspector.createParameters('Moon').close();
+  moonGui.add(moon.position.value, 'x', -80, 80, 0.1).name('positionX');
+  moonGui.add(moon.position.value, 'y', -40, 60, 0.1).name('positionY');
+  moonGui.add(moon.position.value, 'z', -70, 10, 0.1).name('positionZ');
+  moonGui.add(moon.size, 'value', 1, 40, 0.1).name('size');
+  moonGui.add(moon.opacity, 'value', 0, 1, 0.01).name('opacity');
+  moonGui.add(moon.rotation, 'value', -Math.PI, Math.PI, 0.01).name('rotation');
+  moonGui.addColor(moon.discColor, 'value').name('discColor');
+  moonGui.addColor(moon.edgeColor, 'value').name('edgeColor');
+  moonGui.addColor(moon.haloColor, 'value').name('haloColor');
+  moonGui.add(moon.haloStrength, 'value', 0, 1, 0.01).name('haloStrength');
+  moonGui.add(moon.haloExponent, 'value', 0.5, 8, 0.01).name('haloExponent');
+  moonGui.add(moon.haloRadius, 'value', 0.55, 1.5, 0.01).name('haloRadius');
+  moonGui.add(moon.discRadius, 'value', 0.05, 0.95, 0.01).name('discRadius');
+  moonGui.add(moon.softness, 'value', 0, 0.2, 0.001).name('softness');
+  moonGui.add(moon.lightX, 'value', -0.5, 0.5, 0.01).name('lightX');
+  moonGui.add(moon.lightY, 'value', -0.5, 0.5, 0.01).name('lightY');
+  moonGui.addColor(moon.craterColor, 'value').name('craterColor');
+  moonGui.add(moon.craterStrength, 'value', 0, 1.5, 0.01).name('craterStrength');
+  moonGui.add(moon.craterScale, 'value', 0.5, 2, 0.01).name('craterScale');
 
   const pumpkinsGui = inspector.createParameters('Pumpkins');
-  pumpkinsGui.add(options.radius, 'value', 0, 0.5, 0.001).name('radius');
   pumpkinsGui.add(options.pumpkinSize, 'value', 0.5, 3, 0.01).name('pumpkinSize');
   pumpkinsGui.add(options.gravityStrength, 'value', 0, 0.1, 0.001).name('gravityStrength');
   pumpkinsGui.add(options.impactDamping, 'value', 0, 1, 0.001).name('impactDamping');

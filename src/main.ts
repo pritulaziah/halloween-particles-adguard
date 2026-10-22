@@ -19,6 +19,7 @@ import {
   uv,
   vec3,
 } from 'three/tsl';
+import { createAtmosphere } from './atmosphere';
 import { createBats } from './bats';
 import { createGhosts } from './ghosts';
 import { setupMusicToggle } from './music';
@@ -130,6 +131,11 @@ const ambientLight = new THREE.AmbientLight(0xe8b8ff, 0.08);
 scene.add(ambientLight);
 
 /**
+ * Atmosphere
+ */
+const atmosphere = createAtmosphere(scene, camera);
+
+/**
  * Cursor
  */
 const raycaster = new THREE.Raycaster();
@@ -146,11 +152,6 @@ window.addEventListener('pointermove', (event) => {
   cursor.x = coordinates.x;
   cursor.y = coordinates.y;
 });
-
-const cursorHelper = new THREE.Mesh(
-  new THREE.IcosahedronGeometry(1, 3),
-  new THREE.MeshBasicMaterial({ wireframe: true }),
-);
 
 /**
  * Word particles
@@ -292,6 +293,7 @@ timer.connect(document);
 
 const tick = (timestamp: number) => {
   controls.update();
+  atmosphere.update();
 
   timer.update(timestamp);
   const delta = timer.getDelta();
@@ -310,8 +312,6 @@ const tick = (timestamp: number) => {
   const intersect = new THREE.Vector3();
   raycaster.ray.intersectPlane(plane, intersect);
 
-  cursorHelper.position.copy(intersect);
-
   cursorVelocity.value.copy(intersect).sub(cursorPosition.value);
   cursorPosition.value.copy(intersect);
 
@@ -327,11 +327,8 @@ if (import.meta.env.DEV) {
   const { setupDebug } = await import('./debug');
 
   setupDebug(renderer, {
-    bloomPass,
     filmIntensity,
-    directionalLight,
-    ambientLight,
-    radius,
+    atmosphere,
     pumpkinSize,
     gravityStrength,
     impactDamping,
