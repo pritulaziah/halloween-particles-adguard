@@ -1,5 +1,4 @@
 import * as THREE from 'three/webgpu';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   color,
   dot,
@@ -11,6 +10,7 @@ import {
   uniform,
   uv,
 } from 'three/tsl';
+import { loadGLTF } from './load-gltf';
 
 interface GhostConfig {
   base: THREE.Vector3;
@@ -41,7 +41,7 @@ export interface Ghosts {
 
 const hoverFadeSpeed = 8;
 const hoverOpacity = 0.35;
-const rimColor = 0xb9a7ff;
+const rimColor = 0x67b279;
 const baseEmissive = 0x241c33;
 
 function createGhostMaterial(source: THREE.MeshStandardMaterial) {
@@ -70,10 +70,12 @@ function createGhostMaterial(source: THREE.MeshStandardMaterial) {
   return { material, hover };
 }
 
-export async function createGhosts(scene: THREE.Scene, camera: THREE.Camera): Promise<Ghosts> {
-  const gltf = await new GLTFLoader().loadAsync(
-    `${import.meta.env.BASE_URL}models/character-ghost.glb`,
-  );
+export async function createGhosts(
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+  onProgress?: (progress: number) => void,
+): Promise<Ghosts> {
+  const gltf = await loadGLTF(`${import.meta.env.BASE_URL}models/character-ghost.glb`, onProgress);
 
   const idleClip = gltf.animations.find((clip) => clip.name === 'idle');
 

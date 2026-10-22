@@ -23,6 +23,7 @@ import { createBats } from './bats';
 import { createGhosts } from './ghosts';
 import { setupMusicToggle } from './music';
 import { toNormalizedDeviceCoordinates } from './ndc';
+import { createPreloader } from './preloader';
 import { loadPumpkin } from './pumpkin';
 import { createWordTargets } from './word-targets';
 
@@ -32,7 +33,13 @@ if (!canvas) {
   throw new Error('Canvas element not found');
 }
 
-setupMusicToggle();
+/**
+ * Loading
+ */
+const preloader = createPreloader();
+const rendererTask = preloader.addTask(0.2);
+const pumpkinTask = preloader.addTask(0.3);
+const ghostsTask = preloader.addTask(0.5);
 
 /**
  * Scene
@@ -75,6 +82,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0x252028);
 
 await renderer.init();
+rendererTask.done();
 
 window.addEventListener('resize', () => {
   sizes.width = window.innerWidth;
@@ -234,7 +242,11 @@ const updateCompute = Fn(() => {
 /**
  * Particles mesh
  */
-const pumpkin = await loadPumpkin(`${import.meta.env.BASE_URL}models/pumpkin-carved.glb`);
+const pumpkin = await loadPumpkin(
+  `${import.meta.env.BASE_URL}models/pumpkin-carved.glb`,
+  (progress) => pumpkinTask.report(progress),
+);
+pumpkinTask.done();
 
 const geometry = pumpkin.geometry;
 const material = new THREE.MeshLambertNodeMaterial({
@@ -266,28 +278,11 @@ mesh.frustumCulled = false;
 mesh.count = count;
 scene.add(mesh);
 
-const ghosts = await createGhosts(scene, camera);
+const ghosts = await createGhosts(scene, camera, (progress) => ghostsTask.report(progress));
+ghostsTask.done();
 const bats = createBats(scene, camera);
 
-if (import.meta.env.DEV) {
-  const { setupDebug } = await import('./debug');
-
-  setupDebug(renderer, {
-    bloomPass,
-    filmIntensity,
-    directionalLight,
-    ambientLight,
-    radius,
-    pumpkinSize,
-    gravityStrength,
-    impactDamping,
-    generalDamping,
-    heatDamping,
-    heatImpactStrength,
-    cursorRadius,
-    cursorStrength,
-  });
-}
+setupMusicToggle();
 
 /**
  * Animate
@@ -325,3 +320,25 @@ const tick = (timestamp: number) => {
 };
 
 void renderer.setAnimationLoop(tick);
+
+await preloader.complete();
+
+if (import.meta.env.DEV) {
+  const { setupDebug } = await import('./debug');
+
+  setupDebug(renderer, {
+    bloomPass,
+    filmIntensity,
+    directionalLight,
+    ambientLight,
+    radius,
+    pumpkinSize,
+    gravityStrength,
+    impactDamping,
+    generalDamping,
+    heatDamping,
+    heatImpactStrength,
+    cursorRadius,
+    cursorStrength,
+  });
+}

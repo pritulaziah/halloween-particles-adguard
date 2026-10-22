@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadGLTF } from './load-gltf';
 
 export interface PumpkinAsset {
   geometry: THREE.BufferGeometry;
@@ -11,8 +11,11 @@ export interface PumpkinAsset {
 /**
  * Load the pumpkin mesh and its palette texture from a GLB file.
  */
-export async function loadPumpkin(url: string): Promise<PumpkinAsset> {
-  const gltf = await new GLTFLoader().loadAsync(url);
+export async function loadPumpkin(
+  url: string,
+  onProgress?: (progress: number) => void,
+): Promise<PumpkinAsset> {
+  const gltf = await loadGLTF(url, onProgress);
   const mesh = gltf.scene.getObjectByProperty('isMesh', true) as THREE.Mesh | undefined;
 
   if (mesh === undefined) {

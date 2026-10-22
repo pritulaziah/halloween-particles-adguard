@@ -10,6 +10,26 @@
   </head>
   <body>
     <div id="app">
+      <div
+        class="preloader"
+        id="preloader"
+        role="progressbar"
+        aria-label="Loading resources"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+      >
+        <div class="preloader__glow" aria-hidden="true"></div>
+        <div class="preloader__content">
+          <p class="preloader__value">
+            <span class="preloader__percent" id="preloader-percent">0</span>
+            <span class="preloader__unit">%</span>
+          </p>
+          <div class="preloader__track">
+            <div class="preloader__bar" id="preloader-bar"></div>
+          </div>
+        </div>
+      </div>
       <canvas id="scene"></canvas>
       <button
         class="music-toggle"
