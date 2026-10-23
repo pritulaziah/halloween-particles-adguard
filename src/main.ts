@@ -106,7 +106,7 @@ const bloomPass = bloom(scenePassColor);
 bloomPass.threshold.value = 0;
 bloomPass.strength.value = 0.2;
 
-const filmIntensity = uniform(0.2);
+const filmIntensity = uniform(0.4);
 const filmPass = film(scenePassColor.add(bloomPass), filmIntensity);
 
 renderPipeline.outputNode = filmPass;
