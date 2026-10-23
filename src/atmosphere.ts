@@ -166,7 +166,7 @@ export function createAtmosphere(scene: THREE.Scene, camera: THREE.Camera): Atmo
   };
 
   const moon: MoonSettings = {
-    position: uniform(new THREE.Vector3(0, 5.5, -40)),
+    position: uniform(new THREE.Vector3(0, 6, -30)),
     size: uniform(10),
     opacity: uniform(0.92),
     rotation: uniform(0),

@@ -9,7 +9,6 @@ interface NumberUniform {
 interface DebugOptions {
   filmIntensity: NumberUniform;
   atmosphere: Atmosphere;
-  pumpkinSize: NumberUniform;
   gravityStrength: NumberUniform;
   impactDamping: NumberUniform;
   generalDamping: NumberUniform;
@@ -40,12 +39,7 @@ export function setupDebug(renderer: THREE.WebGPURenderer, options: DebugOptions
 
   const moon = options.atmosphere.moon;
   const moonGui = inspector.createParameters('Moon').close();
-  moonGui.add(moon.position.value, 'x', -80, 80, 0.1).name('positionX');
-  moonGui.add(moon.position.value, 'y', -40, 60, 0.1).name('positionY');
-  moonGui.add(moon.position.value, 'z', -70, 10, 0.1).name('positionZ');
-  moonGui.add(moon.size, 'value', 1, 40, 0.1).name('size');
   moonGui.add(moon.opacity, 'value', 0, 1, 0.01).name('opacity');
-  moonGui.add(moon.rotation, 'value', -Math.PI, Math.PI, 0.01).name('rotation');
   moonGui.addColor(moon.discColor, 'value').name('discColor');
   moonGui.addColor(moon.edgeColor, 'value').name('edgeColor');
   moonGui.addColor(moon.haloColor, 'value').name('haloColor');
@@ -58,10 +52,8 @@ export function setupDebug(renderer: THREE.WebGPURenderer, options: DebugOptions
   moonGui.add(moon.lightY, 'value', -0.5, 0.5, 0.01).name('lightY');
   moonGui.addColor(moon.craterColor, 'value').name('craterColor');
   moonGui.add(moon.craterStrength, 'value', 0, 1.5, 0.01).name('craterStrength');
-  moonGui.add(moon.craterScale, 'value', 0.5, 2, 0.01).name('craterScale');
 
   const pumpkinsGui = inspector.createParameters('Pumpkins');
-  pumpkinsGui.add(options.pumpkinSize, 'value', 0.5, 3, 0.01).name('pumpkinSize');
   pumpkinsGui.add(options.gravityStrength, 'value', 0, 0.1, 0.001).name('gravityStrength');
   pumpkinsGui.add(options.impactDamping, 'value', 0, 1, 0.001).name('impactDamping');
   pumpkinsGui.add(options.generalDamping, 'value', 0, 1, 0.01).name('generalDamping');

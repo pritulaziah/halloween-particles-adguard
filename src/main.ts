@@ -170,8 +170,8 @@ const heatBuffer = instancedArray(count, 'float');
 const targetsBuffer = instancedArray(targets, 'vec3');
 
 const radius = uniform(0.08);
-const gravityStrength = uniform(0.025);
-const impactDamping = uniform(0.05);
+const gravityStrength = uniform(0.05);
+const impactDamping = uniform(0.625);
 const generalDamping = uniform(0.4);
 const heatDamping = uniform(2);
 const heatImpactStrength = uniform(30);
@@ -257,7 +257,7 @@ const material = new THREE.MeshLambertNodeMaterial({
   emissiveNode: unknown;
 };
 
-const pumpkinSize = uniform(1.5);
+const pumpkinSize = 1.8;
 const pumpkinScale = radius.mul(2).mul(pumpkinSize).div(pumpkin.height);
 
 material.positionNode = Fn(() => {
@@ -329,7 +329,6 @@ if (import.meta.env.DEV) {
   setupDebug(renderer, {
     filmIntensity,
     atmosphere,
-    pumpkinSize,
     gravityStrength,
     impactDamping,
     generalDamping,
