@@ -4,6 +4,7 @@ import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { film } from 'three/addons/tsl/display/FilmNode.js';
 import {
   EPSILON,
+  cameraPosition,
   color,
   deltaTime,
   dot,
@@ -12,11 +13,14 @@ import {
   instancedArray,
   instanceIndex,
   Loop,
+  normalLocal,
   pass,
   positionLocal,
   step,
   uniform,
   uv,
+  varying,
+  vec2,
   vec3,
 } from 'three/tsl';
 import { createAtmosphere } from './atmosphere';
@@ -260,10 +264,29 @@ const material = new THREE.MeshLambertNodeMaterial({
 const pumpkinSize = 1.8;
 const pumpkinScale = radius.mul(2).mul(pumpkinSize).div(pumpkin.height);
 
+const toCamera = cameraPosition.sub(positionsBuffer.element(instanceIndex));
+const flatToCamera = vec2(toCamera.x, toCamera.z);
+const facing = varying(flatToCamera.div(flatToCamera.length().max(EPSILON)), 'vFacing');
+
 material.positionNode = Fn(() => {
   const localPosition = positionLocal.sub(vec3(0, pumpkin.centerY, 0)).mul(pumpkinScale);
+  const rotatedPosition = vec3(
+    localPosition.x.mul(facing.y).add(localPosition.z.mul(facing.x)),
+    localPosition.y,
+    localPosition.z.mul(facing.y).sub(localPosition.x.mul(facing.x)),
+  );
 
-  return localPosition.add(positionsBuffer.element(instanceIndex));
+  return rotatedPosition.add(positionsBuffer.element(instanceIndex));
+})();
+
+material.normalNode = Fn(() => {
+  const normal = normalLocal;
+
+  return vec3(
+    normal.x.mul(facing.y).add(normal.z.mul(facing.x)),
+    normal.y,
+    normal.z.mul(facing.y).sub(normal.x.mul(facing.x)),
+  );
 })();
 
 const heat = heatBuffer.element(instanceIndex);
