@@ -1,6 +1,6 @@
 import type * as THREE from 'three/webgpu';
 import { Inspector } from 'three/addons/inspector/Inspector.js';
-import type { Atmosphere } from './atmosphere';
+import type { Atmosphere } from '../objects/atmosphere';
 
 interface NumberUniform {
   value: number;

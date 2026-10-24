@@ -10,7 +10,7 @@ import {
   uniform,
   uv,
 } from 'three/tsl';
-import { loadGLTF } from './load-gltf';
+import { loadGLTF } from '../core/load-gltf';
 
 interface GhostConfig {
   base: THREE.Vector3;

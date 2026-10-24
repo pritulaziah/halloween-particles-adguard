@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu';
-import { loadGLTF } from './load-gltf';
+import { loadGLTF } from '../core/load-gltf';
 
 export interface PumpkinAsset {
   geometry: THREE.BufferGeometry;
