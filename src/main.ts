@@ -24,6 +24,7 @@ import {
   vec3,
 } from 'three/tsl';
 import { createAtmosphere } from './atmosphere';
+import { createBatFlock } from './bat-flock';
 import { createBats } from './bats';
 import { createGhosts } from './ghosts';
 import { setupMusicToggle } from './music';
@@ -305,6 +306,7 @@ scene.add(mesh);
 const ghosts = await createGhosts(scene, camera, (progress) => ghostsTask.report(progress));
 ghostsTask.done();
 const bats = createBats(scene, camera);
+const batFlock = createBatFlock(scene, renderer);
 
 setupMusicToggle();
 
@@ -329,6 +331,7 @@ const tick = (timestamp: number) => {
   raycaster.setFromCamera(cursor, camera);
   ghosts.setHover(raycaster);
   bats.setHover(raycaster);
+  batFlock.update(delta, elapsed, raycaster.ray);
   const planeNormal = camera.position.clone().normalize();
   const plane = new THREE.Plane(planeNormal, 0);
 
