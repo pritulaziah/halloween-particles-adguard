@@ -1,7 +1,15 @@
 {
   "name": "halloween-particles-adguard",
-  "private": true,
   "version": "0.0.0",
+  "description": "An interactive 3D scene that wishes AdGuard users a happy Halloween.",
+  "author": "pritulaziah",
+  "license": "MIT",
+  "homepage": "https://pritulaziah.github.io/halloween-particles-adguard/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pritulaziah/particles-adguard.git"
+  },
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
