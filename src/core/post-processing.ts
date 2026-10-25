@@ -6,6 +6,8 @@ import { pass, uniform } from 'three/tsl';
 
 export interface PostProcessing {
   filmIntensity: UniformNode<'float', number>;
+  /** Image brightness from 0 to 1. Use it to fade the scene in. */
+  fade: UniformNode<'float', number>;
   render(): void;
 }
 
@@ -16,7 +18,8 @@ export function createPostProcessing(
 ): PostProcessing {
   const renderPipeline = new THREE.RenderPipeline(renderer);
   const scenePass = pass(scene, camera);
-  const scenePassColor = scenePass.getTextureNode('output');
+  const fade = uniform(0);
+  const scenePassColor = scenePass.getTextureNode('output').mul(fade);
   const bloomPass = bloom(scenePassColor);
   bloomPass.threshold.value = 0;
   bloomPass.strength.value = 0.2;
@@ -27,6 +30,7 @@ export function createPostProcessing(
 
   return {
     filmIntensity,
+    fade,
     render() {
       renderPipeline.render();
     },

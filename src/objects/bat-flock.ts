@@ -18,12 +18,19 @@ import {
   uniform,
   vec3,
 } from 'three/tsl';
+import { introDuration } from '../core/intro';
+import type { Intro } from '../core/intro';
 
 const batOrbitCenter = new THREE.Vector3(0, 2, -24);
 const batOrbitRadiusMin = 13;
 const batOrbitRadiusMax = 17;
 const batOrbitAngularSpeed = 0.18;
 const batCount = 84;
+
+/** The flock comes from a wide circle behind the moon and moves to the final orbit. */
+const flockStartRadiusScale = 1.4;
+const flockStartOffset = new THREE.Vector3(0, 9, -16);
+const flockIntroDuration = introDuration * 0.64;
 
 export interface BatFlock {
   update(delta: number, elapsed: number, ray: THREE.Ray): void;
@@ -49,7 +56,11 @@ export function createBatGeometry(): THREE.BufferGeometry {
 /**
  * Create a small flock of bats that orbits the scene in 3D at a distance and flees the pointer.
  */
-export function createBatFlock(scene: THREE.Scene, renderer: THREE.WebGPURenderer): BatFlock {
+export function createBatFlock(
+  scene: THREE.Scene,
+  renderer: THREE.WebGPURenderer,
+  intro: Intro,
+): BatFlock {
   const positionArray = new Float32Array(batCount * 3);
   const velocityArray = new Float32Array(batCount * 3);
   const phaseArray = new Float32Array(batCount);
@@ -111,6 +122,13 @@ export function createBatFlock(scene: THREE.Scene, renderer: THREE.WebGPURendere
   const orbitAngularSpeed = uniform(batOrbitAngularSpeed);
   const boundsMin = uniform(new THREE.Vector3(-32, -20, -44));
   const boundsMax = uniform(new THREE.Vector3(32, 24, -6));
+  const introTime = intro.time;
+  const introProgress = smoothstep(0, flockIntroDuration, introTime);
+  const introFade = introProgress.oneMinus();
+  const startRadiusScale = introFade.mul(flockStartRadiusScale).add(1);
+  const startOffset = vec3(flockStartOffset.x, flockStartOffset.y, flockStartOffset.z).mul(
+    introFade,
+  );
 
   const computeVelocity = Fn(() => {
     const position = positionStorage.element(instanceIndex);
@@ -118,8 +136,9 @@ export function createBatFlock(scene: THREE.Scene, renderer: THREE.WebGPURendere
 
     const orbitPhase = orbitPhaseStorage.element(instanceIndex);
     const orbitAngle = orbitPhase.add(elapsedUniform.mul(orbitAngularSpeed));
-    const orbitRadius = orbitRadiusStorage.element(instanceIndex);
+    const orbitRadius = orbitRadiusStorage.element(instanceIndex).mul(startRadiusScale);
     const target = orbitCenter
+      .add(startOffset)
       .add(orbitBasisUStorage.element(instanceIndex).mul(cos(orbitAngle)).mul(orbitRadius))
       .add(orbitBasisVStorage.element(instanceIndex).mul(sin(orbitAngle)).mul(orbitRadius));
     velocity.addAssign(target.sub(position).mul(deltaUniform).mul(8));
@@ -178,8 +197,11 @@ export function createBatFlock(scene: THREE.Scene, renderer: THREE.WebGPURendere
       position.y,
       position.z.mul(cosYaw).sub(position.x.mul(sinYaw)),
     );
+    const orbitPhase = orbitPhaseStorage.element(instanceIndex);
+    const revealStart = orbitPhase.div(Math.PI * 2).mul(0.9);
+    const reveal = smoothstep(revealStart, revealStart.add(0.6), introTime);
 
-    return rotated.add(instancePosition);
+    return rotated.mul(reveal).add(instancePosition);
   })();
 
   const batGeometry = createBatGeometry();

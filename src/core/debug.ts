@@ -1,5 +1,6 @@
 import type * as THREE from 'three/webgpu';
 import { Inspector } from 'three/addons/inspector/Inspector.js';
+import type { CameraSettings } from './controls';
 import type { Atmosphere } from '../objects/atmosphere';
 
 interface NumberUniform {
@@ -9,13 +10,15 @@ interface NumberUniform {
 interface DebugOptions {
   filmIntensity: NumberUniform;
   atmosphere: Atmosphere;
+  camera: CameraSettings;
+  replayIntro(): void;
   gravityStrength: NumberUniform;
-  impactDamping: NumberUniform;
   generalDamping: NumberUniform;
   heatDamping: NumberUniform;
   heatImpactStrength: NumberUniform;
-  cursorRadius: NumberUniform;
-  cursorStrength: NumberUniform;
+  gatherSpring: NumberUniform;
+  gatherDamping: NumberUniform;
+  gatherSwirl: NumberUniform;
 }
 
 export function setupDebug(renderer: THREE.WebGPURenderer, options: DebugOptions): void {
@@ -24,6 +27,23 @@ export function setupDebug(renderer: THREE.WebGPURenderer, options: DebugOptions
 
   const filmGui = inspector.createParameters('Film').close();
   filmGui.add(options.filmIntensity, 'value', 0, 1, 0.01).name('intensity');
+
+  const introGui = inspector.createParameters('Intro');
+  introGui.add({ replay: () => options.replayIntro() }, 'replay');
+
+  const cameraSettings = options.camera;
+  const cameraGui = inspector.createParameters('Camera');
+  cameraGui.add(cameraSettings, 'dollyDistance', 0, 20, 0.1).name('dollyDistance');
+  cameraGui.add(cameraSettings, 'dollyDuration', 0.5, 8, 0.1).name('dollyDuration');
+  cameraGui.add(cameraSettings, 'parallaxX', 0, 8, 0.1).name('parallaxX');
+  cameraGui.add(cameraSettings, 'parallaxY', 0, 5, 0.1).name('parallaxY');
+  cameraGui.add(cameraSettings, 'lookX', 0, 5, 0.1).name('lookX');
+  cameraGui.add(cameraSettings, 'lookY', 0, 3, 0.1).name('lookY');
+  cameraGui.add(cameraSettings, 'height', -1, 4, 0.1).name('height');
+  cameraGui.add(cameraSettings, 'lookHeight', -1, 3, 0.1).name('lookHeight');
+  cameraGui.add(cameraSettings, 'drift', 0, 3, 0.05).name('drift');
+  cameraGui.add(cameraSettings, 'pointerDamping', 0.5, 10, 0.1).name('pointerDamping');
+  cameraGui.add(cameraSettings, 'distanceDamping', 0.5, 10, 0.1).name('distanceDamping');
 
   const sky = options.atmosphere.sky;
   const skyGui = inspector.createParameters('Sky').close();
@@ -55,10 +75,10 @@ export function setupDebug(renderer: THREE.WebGPURenderer, options: DebugOptions
 
   const pumpkinsGui = inspector.createParameters('Pumpkins');
   pumpkinsGui.add(options.gravityStrength, 'value', 0, 0.1, 0.001).name('gravityStrength');
-  pumpkinsGui.add(options.impactDamping, 'value', 0, 1, 0.001).name('impactDamping');
   pumpkinsGui.add(options.generalDamping, 'value', 0, 1, 0.01).name('generalDamping');
   pumpkinsGui.add(options.heatDamping, 'value', 0, 10, 0.1).name('heatDamping');
   pumpkinsGui.add(options.heatImpactStrength, 'value', 0, 100, 0.1).name('heatImpactStrength');
-  pumpkinsGui.add(options.cursorRadius, 'value', 0, 5, 0.001).name('cursorRadius');
-  pumpkinsGui.add(options.cursorStrength, 'value', 0, 0.2, 0.001).name('cursorStrength');
+  pumpkinsGui.add(options.gatherSpring, 'value', 0, 6, 0.01).name('gatherSpring');
+  pumpkinsGui.add(options.gatherDamping, 'value', 0, 6, 0.01).name('gatherDamping');
+  pumpkinsGui.add(options.gatherSwirl, 'value', 0, 8, 0.01).name('gatherSwirl');
 }

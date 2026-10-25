@@ -54,6 +54,7 @@ export interface MoonSettings {
 export interface Atmosphere {
   sky: SkySettings;
   moon: MoonSettings;
+  fog: THREE.FogExp2;
   update(): void;
 }
 
@@ -186,7 +187,8 @@ export function createAtmosphere(scene: THREE.Scene, camera: THREE.Camera): Atmo
   };
 
   // The fog color also matches the horizon of the sky gradient.
-  scene.fog = new THREE.FogExp2(0x252028, 0.015);
+  const fog = new THREE.FogExp2(0x252028, 0.015);
+  scene.fog = fog;
 
   const skyMesh = createSkyMesh(sky, moon.position);
   skyMesh.position.copy(camera.position);
@@ -198,6 +200,7 @@ export function createAtmosphere(scene: THREE.Scene, camera: THREE.Camera): Atmo
   return {
     sky,
     moon,
+    fog,
 
     update() {
       // The sky sphere follows the camera, so it always covers the view.

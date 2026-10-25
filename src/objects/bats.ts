@@ -1,4 +1,6 @@
 import * as THREE from 'three/webgpu';
+import { introDuration, introStep } from '../core/intro';
+import type { Intro } from '../core/intro';
 
 interface BatConfig {
   center: THREE.Vector3;
@@ -10,6 +12,11 @@ interface BatConfig {
   scale: number;
   /** Preferred escape direction. The bat turns away if this direction points to the word. */
   fleeDirection: THREE.Vector3;
+  /** Intro time when the bat starts to fly in, in seconds. */
+  entryDelay: number;
+  entryDuration: number;
+  /** The bat starts at this point and flies to its orbit. */
+  entryPosition: THREE.Vector3;
 }
 
 type FleeState = 'idle' | 'fleeing' | 'returning';
@@ -209,8 +216,8 @@ function createBat(config: BatConfig): BatInstance {
   };
 }
 
-export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
-  const configs: BatConfig[] = [
+export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intro): Bats {
+  const orbitConfigs: Omit<BatConfig, 'entryDuration' | 'entryPosition'>[] = [
     {
       center: new THREE.Vector3(0, 3.4, 6),
       radius: 2,
@@ -220,6 +227,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       bobSpeed: 1.4,
       scale: 1.6,
       fleeDirection: new THREE.Vector3(0, 1, 0.6),
+      entryDelay: introDuration * 0.18,
     },
     {
       center: new THREE.Vector3(-11.9, -1.5, 2.5),
@@ -230,6 +238,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       bobSpeed: 1.1,
       scale: 1.45,
       fleeDirection: new THREE.Vector3(-1, 0.5, 0.6),
+      entryDelay: introDuration * 0.26,
     },
     {
       center: new THREE.Vector3(7.1, 1.6, 8.5),
@@ -240,6 +249,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       bobSpeed: 1.3,
       scale: 1.5,
       fleeDirection: new THREE.Vector3(1, 0.6, 0.5),
+      entryDelay: introDuration * 0.22,
     },
     {
       center: new THREE.Vector3(-13.5, -5, -9),
@@ -250,6 +260,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       bobSpeed: 1,
       scale: 1.4,
       fleeDirection: new THREE.Vector3(-0.8, -0.5, -0.6),
+      entryDelay: introDuration * 0.32,
     },
     {
       center: new THREE.Vector3(13.5, -5.2, -10),
@@ -260,6 +271,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       bobSpeed: 1.2,
       scale: 1.3,
       fleeDirection: new THREE.Vector3(0.8, -0.5, -0.6),
+      entryDelay: introDuration * 0.3,
     },
     {
       center: new THREE.Vector3(0, 5.8, -13),
@@ -270,8 +282,20 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
       bobSpeed: 0.9,
       scale: 1.2,
       fleeDirection: new THREE.Vector3(0, 0.8, -0.6),
+      entryDelay: introDuration * 0.38,
     },
   ];
+
+  const configs: BatConfig[] = orbitConfigs.map((config, index) => {
+    const entryPosition = config.center.clone().normalize().multiplyScalar(30);
+    entryPosition.y += 5 + (index % 3) * 2;
+
+    return {
+      ...config,
+      entryDuration: introDuration * 0.34,
+      entryPosition,
+    };
+  });
 
   const bats = configs.map((config) => {
     const bat = createBat(config);
@@ -320,20 +344,29 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
 
   return {
     update(delta) {
+      const seconds = intro.time.value;
+
       for (const bat of bats) {
         if (bat.fleeState === 'idle') {
           bat.orbitPhase += delta * bat.config.speed;
           bat.bobPhase += delta * bat.config.bobSpeed;
         }
 
+        const entry = introStep(seconds, bat.config.entryDelay, bat.config.entryDuration);
         const orbitX = bat.config.center.x + Math.cos(bat.orbitPhase) * bat.config.radius;
         const orbitZ = bat.config.center.z + Math.sin(bat.orbitPhase) * bat.config.radius * 0.55;
         const orbitY = bat.config.center.y + Math.sin(bat.bobPhase) * bat.config.bob;
 
         const fleeOffset = getFleeOffset(bat, delta);
-        const x = orbitX + bat.fleeDirection.x * fleeOffset;
-        const y = orbitY + bat.fleeDirection.y * fleeOffset;
-        const z = orbitZ + bat.fleeDirection.z * fleeOffset;
+        const orbitPositionX = orbitX + bat.fleeDirection.x * fleeOffset;
+        const orbitPositionY = orbitY + bat.fleeDirection.y * fleeOffset;
+        const orbitPositionZ = orbitZ + bat.fleeDirection.z * fleeOffset;
+
+        // Blend from the start point to the orbit while the intro plays.
+        const start = bat.config.entryPosition;
+        const x = start.x + (orbitPositionX - start.x) * entry;
+        const y = start.y + (orbitPositionY - start.y) * entry;
+        const z = start.z + (orbitPositionZ - start.z) * entry;
 
         bat.group.position.set(x, y, z);
 
@@ -341,7 +374,9 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
         const startle = fleeing
           ? Math.sin(Math.min(bat.fleeElapsed / fleeSettings.duration, 1) * Math.PI)
           : 0;
-        bat.group.scale.setScalar(bat.config.scale * (1 + startle * fleeSettings.startleScale));
+        bat.group.scale.setScalar(
+          bat.config.scale * entry * (1 + startle * fleeSettings.startleScale),
+        );
 
         const targetAngle = fleeing
           ? Math.atan2(bat.fleeDirection.x, bat.fleeDirection.z)
@@ -352,7 +387,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera): Bats {
           1 - Math.exp(-delta * 12),
         );
 
-        bat.flapPhase += delta * (fleeing ? fleeSettings.flapSpeed : 12);
+        bat.flapPhase += delta * (fleeing ? fleeSettings.flapSpeed : entry < 0.999 ? 20 : 12);
 
         const flap = Math.sin(bat.flapPhase) * 0.7;
         bat.rightFlap.rotation.z = flap;
