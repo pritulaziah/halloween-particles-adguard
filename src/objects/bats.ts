@@ -10,8 +10,6 @@ interface BatConfig {
   bob: number;
   bobSpeed: number;
   scale: number;
-  /** Preferred escape direction. The bat turns away if this direction points to the word. */
-  fleeDirection: THREE.Vector3;
   /** Intro time when the bat starts to fly in, in seconds. */
   entryDelay: number;
   entryDuration: number;
@@ -19,17 +17,14 @@ interface BatConfig {
   entryPosition: THREE.Vector3;
 }
 
-type FleeState = 'idle' | 'fleeing' | 'returning';
-
 interface BatInstance {
   group: THREE.Group;
   leftFlap: THREE.Group;
   rightFlap: THREE.Group;
+  eyeMaterial: THREE.MeshBasicNodeMaterial;
   meshes: THREE.Mesh[];
   config: BatConfig;
-  fleeState: FleeState;
-  fleeElapsed: number;
-  fleeDirection: THREE.Vector3;
+  anger: number;
   hovered: boolean;
   flapPhase: number;
   orbitPhase: number;
@@ -41,34 +36,18 @@ export interface Bats {
   setHover(raycaster: THREE.Raycaster): void;
 }
 
-/**
- * Flee settings. Change these values to tune the scared behavior.
- */
-const fleeSettings = {
-  /** Hover hit area radius, in bat-local units. */
-  hitRadius: 0.45,
-  /** Escape distance, in world units. */
-  distance: 6,
-  /** Escape time, in seconds. */
-  duration: 1.1,
-  /** Return time, in seconds. */
-  returnDuration: 1.8,
-  /** Wing flap speed during the escape, in radians per second. */
-  flapSpeed: 26,
-  /** Startle scale pulse, as a fraction of the bat scale. */
-  startleScale: 0.18,
-};
-
-/** The ADGUARD word is centered at the world origin. */
-const wordCenter = new THREE.Vector3();
-
-function easeOutCubic(value: number): number {
-  return 1 - (1 - value) ** 3;
-}
-
-function easeInOutCubic(value: number): number {
-  return value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
-}
+/** The eye color when the bat is calm. */
+const eyeColor = new THREE.Color(0xff8a4c);
+/** The eye color when the bat is angry. */
+const angryEyeColor = new THREE.Color(0xff1f1f);
+/** Speed of the anger change, in 1/second. */
+const angerSpeed = 8;
+/** Wing flap speed in the idle state, in radians per second. */
+const calmFlapSpeed = 12;
+/** Wing flap speed when the bat is angry, in radians per second. */
+const angryFlapSpeed = 26;
+/** Hover hit area radius, in bat-local units. */
+const hitRadius = 0.45;
 
 function lerpAngle(current: number, target: number, amount: number): number {
   const difference = Math.atan2(Math.sin(target - current), Math.cos(target - current));
@@ -76,39 +55,16 @@ function lerpAngle(current: number, target: number, amount: number): number {
   return current + difference * amount;
 }
 
-/**
- * Return the escape direction.
- * The result never points to the ADGUARD word.
- */
-export function resolveFleeDirection(
-  position: THREE.Vector3,
-  preferred: THREE.Vector3,
-): THREE.Vector3 {
-  const away = position.clone().sub(wordCenter);
+/** Write the eye color for the current anger from 0 to 1 into the target color. */
+export function applyEyeColor(anger: number, target: THREE.Color): THREE.Color {
+  const amount = Math.min(Math.max(anger, 0), 1);
 
-  if (away.lengthSq() < 1e-6) {
-    away.set(0, 1, 0);
-  }
-
-  away.normalize();
-
-  const direction = preferred.clone().normalize();
-
-  // A direction that points to the word would make the bat fly onto the sign.
-  if (direction.dot(away) <= 0) {
-    return away;
-  }
-
-  return direction;
+  return target.copy(eyeColor).lerp(angryEyeColor, amount);
 }
 
 const batMaterial = new THREE.MeshBasicNodeMaterial({
   color: 0x0a090d,
   side: THREE.DoubleSide,
-});
-
-const eyeMaterial = new THREE.MeshBasicNodeMaterial({
-  color: 0xff8a4c,
 });
 
 function createWingGeometry(): THREE.ShapeGeometry {
@@ -159,6 +115,7 @@ function createBat(config: BatConfig): BatInstance {
   group.add(tail);
 
   const eyeGeometry = new THREE.SphereGeometry(0.018, 4, 3);
+  const eyeMaterial = new THREE.MeshBasicNodeMaterial({ color: eyeColor });
 
   const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
   leftEye.position.set(-0.035, 0.19, 0.125);
@@ -185,7 +142,7 @@ function createBat(config: BatConfig): BatInstance {
   group.add(leftRoot);
 
   const hitArea = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial());
-  hitArea.scale.setScalar(fleeSettings.hitRadius);
+  hitArea.scale.setScalar(hitRadius);
   hitArea.visible = false;
   group.add(hitArea);
 
@@ -204,11 +161,10 @@ function createBat(config: BatConfig): BatInstance {
     group,
     leftFlap,
     rightFlap,
+    eyeMaterial,
     meshes,
     config,
-    fleeState: 'idle',
-    fleeElapsed: 0,
-    fleeDirection: config.fleeDirection.clone().normalize(),
+    anger: 0,
     hovered: false,
     flapPhase: config.phase,
     orbitPhase: config.phase,
@@ -226,7 +182,6 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       bob: 0.15,
       bobSpeed: 1.4,
       scale: 1.6,
-      fleeDirection: new THREE.Vector3(0, 1, 0.6),
       entryDelay: introDuration * 0.18,
     },
     {
@@ -237,7 +192,6 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       bob: 0.3,
       bobSpeed: 1.1,
       scale: 1.45,
-      fleeDirection: new THREE.Vector3(-1, 0.5, 0.6),
       entryDelay: introDuration * 0.26,
     },
     {
@@ -248,7 +202,6 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       bob: 0.35,
       bobSpeed: 1.3,
       scale: 1.5,
-      fleeDirection: new THREE.Vector3(1, 0.6, 0.5),
       entryDelay: introDuration * 0.22,
     },
     {
@@ -259,7 +212,6 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       bob: 0.45,
       bobSpeed: 1,
       scale: 1.4,
-      fleeDirection: new THREE.Vector3(-0.8, -0.5, -0.6),
       entryDelay: introDuration * 0.32,
     },
     {
@@ -270,7 +222,6 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       bob: 0.4,
       bobSpeed: 1.2,
       scale: 1.3,
-      fleeDirection: new THREE.Vector3(0.8, -0.5, -0.6),
       entryDelay: introDuration * 0.3,
     },
     {
@@ -281,7 +232,6 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       bob: 0.5,
       bobSpeed: 0.9,
       scale: 1.2,
-      fleeDirection: new THREE.Vector3(0, 0.8, -0.6),
       entryDelay: introDuration * 0.38,
     },
   ];
@@ -306,88 +256,43 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
 
   const meshes = bats.flatMap((bat) => bat.meshes);
 
-  const startFlee = (bat: BatInstance) => {
-    bat.fleeDirection.copy(resolveFleeDirection(bat.group.position, bat.config.fleeDirection));
-    bat.fleeState = 'fleeing';
-    bat.fleeElapsed = 0;
-  };
-
-  const getFleeOffset = (bat: BatInstance, delta: number): number => {
-    if (bat.fleeState === 'idle') {
-      return 0;
-    }
-
-    bat.fleeElapsed += delta;
-
-    if (bat.fleeState === 'fleeing') {
-      const progress = Math.min(bat.fleeElapsed / fleeSettings.duration, 1);
-      const offset = easeOutCubic(progress) * fleeSettings.distance;
-
-      if (progress >= 1) {
-        bat.fleeState = 'returning';
-        bat.fleeElapsed = 0;
-      }
-
-      return offset;
-    }
-
-    const progress = Math.min(bat.fleeElapsed / fleeSettings.returnDuration, 1);
-    const offset = (1 - easeInOutCubic(progress)) * fleeSettings.distance;
-
-    if (progress >= 1) {
-      bat.fleeState = 'idle';
-      bat.fleeElapsed = 0;
-    }
-
-    return offset;
-  };
-
   return {
     update(delta) {
       const seconds = intro.time.value;
 
       for (const bat of bats) {
-        if (bat.fleeState === 'idle') {
-          bat.orbitPhase += delta * bat.config.speed;
-          bat.bobPhase += delta * bat.config.bobSpeed;
-        }
+        bat.orbitPhase += delta * bat.config.speed;
+        bat.bobPhase += delta * bat.config.bobSpeed;
 
         const entry = introStep(seconds, bat.config.entryDelay, bat.config.entryDuration);
         const orbitX = bat.config.center.x + Math.cos(bat.orbitPhase) * bat.config.radius;
         const orbitZ = bat.config.center.z + Math.sin(bat.orbitPhase) * bat.config.radius * 0.55;
         const orbitY = bat.config.center.y + Math.sin(bat.bobPhase) * bat.config.bob;
 
-        const fleeOffset = getFleeOffset(bat, delta);
-        const orbitPositionX = orbitX + bat.fleeDirection.x * fleeOffset;
-        const orbitPositionY = orbitY + bat.fleeDirection.y * fleeOffset;
-        const orbitPositionZ = orbitZ + bat.fleeDirection.z * fleeOffset;
-
         // Blend from the start point to the orbit while the intro plays.
         const start = bat.config.entryPosition;
-        const x = start.x + (orbitPositionX - start.x) * entry;
-        const y = start.y + (orbitPositionY - start.y) * entry;
-        const z = start.z + (orbitPositionZ - start.z) * entry;
+        const x = start.x + (orbitX - start.x) * entry;
+        const y = start.y + (orbitY - start.y) * entry;
+        const z = start.z + (orbitZ - start.z) * entry;
 
         bat.group.position.set(x, y, z);
 
-        const fleeing = bat.fleeState === 'fleeing';
-        const startle = fleeing
-          ? Math.sin(Math.min(bat.fleeElapsed / fleeSettings.duration, 1) * Math.PI)
-          : 0;
-        bat.group.scale.setScalar(
-          bat.config.scale * entry * (1 + startle * fleeSettings.startleScale),
-        );
+        const angerTarget = bat.hovered ? 1 : 0;
+        bat.anger += (angerTarget - bat.anger) * (1 - Math.exp(-delta * angerSpeed));
+        applyEyeColor(bat.anger, bat.eyeMaterial.color);
 
-        const targetAngle = fleeing
-          ? Math.atan2(bat.fleeDirection.x, bat.fleeDirection.z)
-          : Math.atan2(camera.position.x - x, camera.position.z - z);
+        bat.group.scale.setScalar(bat.config.scale * entry);
+
+        const targetAngle = Math.atan2(camera.position.x - x, camera.position.z - z);
         bat.group.rotation.y = lerpAngle(
           bat.group.rotation.y,
           targetAngle,
           1 - Math.exp(-delta * 12),
         );
 
-        bat.flapPhase += delta * (fleeing ? fleeSettings.flapSpeed : entry < 0.999 ? 20 : 12);
+        const flapSpeed =
+          entry < 0.999 ? 20 : calmFlapSpeed + bat.anger * (angryFlapSpeed - calmFlapSpeed);
+        bat.flapPhase += delta * flapSpeed;
 
         const flap = Math.sin(bat.flapPhase) * 0.7;
         bat.rightFlap.rotation.z = flap;
@@ -399,13 +304,7 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       const hit = raycaster.intersectObjects(meshes, false)[0]?.object ?? null;
 
       for (const bat of bats) {
-        const hovered = bat.meshes.includes(hit as THREE.Mesh);
-
-        if (hovered && !bat.hovered && bat.fleeState === 'idle') {
-          startFlee(bat);
-        }
-
-        bat.hovered = hovered;
+        bat.hovered = bat.meshes.includes(hit as THREE.Mesh);
       }
     },
   };
