@@ -143,6 +143,7 @@ if (import.meta.env.DEV) {
       intro.start();
       wordParticles.restart();
     },
+    ghosts,
     gravityStrength: wordParticles.gravityStrength,
     generalDamping: wordParticles.generalDamping,
     heatDamping: wordParticles.heatDamping,

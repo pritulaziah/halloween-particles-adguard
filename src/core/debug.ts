@@ -2,6 +2,7 @@ import type * as THREE from 'three/webgpu';
 import { Inspector } from 'three/addons/inspector/Inspector.js';
 import type { CameraSettings } from './controls';
 import type { Atmosphere } from '../objects/atmosphere';
+import type { Ghosts } from '../objects/ghosts';
 
 interface NumberUniform {
   value: number;
@@ -12,6 +13,7 @@ interface DebugOptions {
   atmosphere: Atmosphere;
   camera: CameraSettings;
   replayIntro(): void;
+  ghosts: Ghosts;
   gravityStrength: NumberUniform;
   generalDamping: NumberUniform;
   heatDamping: NumberUniform;
@@ -81,4 +83,18 @@ export function setupDebug(renderer: THREE.WebGPURenderer, options: DebugOptions
   pumpkinsGui.add(options.gatherSpring, 'value', 0, 6, 0.01).name('gatherSpring');
   pumpkinsGui.add(options.gatherDamping, 'value', 0, 6, 0.01).name('gatherDamping');
   pumpkinsGui.add(options.gatherSwirl, 'value', 0, 8, 0.01).name('gatherSwirl');
+
+  const ghost = options.ghosts.settings;
+  const ghostGui = inspector.createParameters('Ghosts');
+  ghostGui.addColor(ghost.bodyColor, 'value').name('bodyColor');
+  ghostGui.addColor(ghost.rimColor, 'value').name('rimColor');
+  ghostGui.addColor(ghost.innerColor, 'value').name('innerColor');
+  ghostGui.addColor(ghost.emissiveColor, 'value').name('emissiveColor');
+  ghostGui.addColor(ghost.auraColor, 'value').name('auraColor');
+  ghostGui.add(ghost.opacity, 'value', 0, 1, 0.01).name('opacity');
+  ghostGui.add(ghost.hoverOpacity, 'value', 0, 1, 0.01).name('hoverOpacity');
+  ghostGui.add(ghost.auraOpacity, 'value', 0, 1, 0.01).name('auraOpacity');
+  ghostGui.add(ghost.hoverRadius, 'value', 0, 15, 0.1).name('hoverRadius');
+  ghostGui.add(ghost.hoverPush, 'value', 0, 3, 0.01).name('hoverPush');
+  ghostGui.add(ghost.hoverFadeSpeed, 'value', 0.1, 30, 0.1).name('hoverFadeSpeed');
 }

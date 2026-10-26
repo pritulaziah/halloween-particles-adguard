@@ -46,6 +46,32 @@ interface GhostConfig {
 }
 
 type FloatUniform = UniformNode<'float', number>;
+type ColorUniform = UniformNode<'color', THREE.Color>;
+
+export interface GhostSettings {
+  /** Opacity of the ghost body in the idle state. */
+  opacity: FloatUniform;
+  /** Opacity of the ghost body when the cursor is over it. */
+  hoverOpacity: FloatUniform;
+  /** Opacity of the ghost aura. */
+  auraOpacity: FloatUniform;
+  /** Cursor distance that starts the ghost hover, in world units. */
+  hoverRadius: FloatUniform;
+  /** Distance that the ghost moves away from the cursor, in world units. */
+  hoverPush: FloatUniform;
+  /** Speed of the opacity change on hover, in 1/second. */
+  hoverFadeSpeed: FloatUniform;
+  /** Color of the ghost body. */
+  bodyColor: ColorUniform;
+  /** Color of the ghost rim. */
+  rimColor: ColorUniform;
+  /** Color of the ghost tail. */
+  innerColor: ColorUniform;
+  /** Base emissive color of the ghost. */
+  emissiveColor: ColorUniform;
+  /** Color of the ghost aura. */
+  auraColor: ColorUniform;
+}
 
 interface Ghost {
   group: THREE.Group;
@@ -62,18 +88,16 @@ interface Ghost {
 }
 
 export interface Ghosts {
+  settings: GhostSettings;
   update(delta: number, elapsed: number, cursorPosition: THREE.Vector3): void;
   setHover(raycaster: THREE.Raycaster): void;
 }
 
-const hoverFadeSpeed = 8;
-const rimColor = 0x8ef0a8;
-const innerColor = 0x3f7a52;
-const baseEmissive = 0x241c33;
-const bodyTint = 0xc8ffe4;
-const auraColor = 0x7ce8a0;
-
-function createAura(appear: FloatUniform, hover: FloatUniform): THREE.Sprite {
+function createAura(
+  settings: GhostSettings,
+  appear: FloatUniform,
+  hover: FloatUniform,
+): THREE.Sprite {
   const material = new THREE.SpriteNodeMaterial({
     transparent: true,
     depthWrite: false,
@@ -87,8 +111,13 @@ function createAura(appear: FloatUniform, hover: FloatUniform): THREE.Sprite {
     const distance = centered.length();
     const glow = smoothstep(1, 0.05, distance).pow(2.2);
     const pulse = sin(time.mul(1.3)).mul(0.15).add(0.85);
+    // The aura fades together with the body when the cursor is over the ghost.
+    const hoverFade = mix(1, settings.hoverOpacity.div(settings.opacity.max(0.001)), hover);
 
-    return vec4(color(auraColor).rgb, glow.mul(appear).mul(hover.mul(0.18).add(0.16)).mul(pulse));
+    return vec4(
+      settings.auraColor.rgb,
+      glow.mul(appear).mul(settings.auraOpacity).mul(pulse).mul(hoverFade),
+    );
   })();
 
   const sprite = new THREE.Sprite(material);
@@ -99,6 +128,7 @@ function createAura(appear: FloatUniform, hover: FloatUniform): THREE.Sprite {
 
 function createGhostMaterial(
   source: THREE.MeshStandardMaterial,
+  settings: GhostSettings,
   seed: number,
 ): {
   material: THREE.MeshStandardNodeMaterial;
@@ -112,7 +142,7 @@ function createGhostMaterial(
 
   material.transparent = true;
   material.depthWrite = true;
-  material.colorNode = materialColor.mul(color(bodyTint).rgb);
+  material.colorNode = materialColor.mul(settings.bodyColor.rgb);
 
   const hover = uniform(0);
   const appear = uniform(0);
@@ -174,16 +204,17 @@ function createGhostMaterial(
     .add(0.85);
   const rimStrength = hover.mul(1.2).add(0.45);
 
-  material.emissiveNode = color(baseEmissive)
-    .rgb.add(color(rimColor).rgb.mul(rim).mul(pulse).mul(rimStrength))
-    .add(color(innerColor).rgb.mul(inner).mul(0.35).mul(flicker))
+  material.emissiveNode = settings.emissiveColor.rgb
+    .add(settings.rimColor.rgb.mul(rim).mul(pulse).mul(rimStrength))
+    .add(settings.innerColor.rgb.mul(inner).mul(0.35).mul(flicker))
     .mul(flicker.mul(0.2).add(0.8));
 
   material.opacityNode = Fn(() => {
     const noise = mx_noise_float(positionWorld.mul(5).add(vec3(0, time.mul(0.6), 0)));
     const dissolve = smoothstep(0.04, 0.3, heightRatio.add(noise.mul(0.12)));
+    const visibility = mix(settings.opacity, settings.hoverOpacity, hover);
 
-    return appear.mul(dissolve).mul(mix(1, 0.8, hover));
+    return appear.mul(dissolve).mul(visibility);
   })();
 
   return { material, hover, appear, baseY, height };
@@ -216,6 +247,20 @@ export async function createGhosts(
   const boundingBox = new THREE.Box3().setFromObject(gltf.scene);
   const center = boundingBox.getCenter(new THREE.Vector3());
   const height = boundingBox.max.y - boundingBox.min.y;
+
+  const settings: GhostSettings = {
+    opacity: uniform(0.55),
+    hoverOpacity: uniform(0.1),
+    auraOpacity: uniform(0.18),
+    hoverRadius: uniform(5),
+    hoverPush: uniform(0.5),
+    hoverFadeSpeed: uniform(8),
+    bodyColor: uniform(color(0xdbe7ff)),
+    rimColor: uniform(color(0xa9c9ff)),
+    innerColor: uniform(color(0x556b9e)),
+    emissiveColor: uniform(color(0x121728)),
+    auraColor: uniform(color(0x93b7ff)),
+  };
 
   const configs: GhostConfig[] = [
     {
@@ -256,7 +301,7 @@ export async function createGhosts(
       appear,
       baseY,
       height: ghostHeight,
-    } = createGhostMaterial(sourceMaterial, index * 2.3);
+    } = createGhostMaterial(sourceMaterial, settings, index * 2.3);
     const meshes: THREE.Mesh[] = [];
 
     model.traverse((object) => {
@@ -275,7 +320,7 @@ export async function createGhosts(
     pivot.add(model);
 
     group.add(pivot);
-    group.add(createAura(appear, hover));
+    group.add(createAura(settings, appear, hover));
     scene.add(group);
 
     const mixer = new THREE.AnimationMixer(model);
@@ -300,13 +345,15 @@ export async function createGhosts(
   const meshes = ghosts.flatMap((ghost) => ghost.meshes);
 
   return {
+    settings,
+
     update(delta, elapsed, cursorPosition) {
       const seconds = intro.time.value;
-      const fade = 1 - Math.exp(-delta * hoverFadeSpeed);
+      const fade = 1 - Math.exp(-delta * settings.hoverFadeSpeed.value);
 
       for (const ghost of ghosts) {
-        ghost.hover.value += (ghost.targetHover - ghost.hover.value) * fade;
         ghost.hoverHold = Math.max(0, ghost.hoverHold - delta);
+        ghost.hover.value += (ghost.targetHover - ghost.hover.value) * fade;
 
         const entry = introStep(seconds, ghost.config.entryDelay, ghost.config.entryDuration);
         ghost.appear.value = entry;
@@ -322,24 +369,23 @@ export async function createGhosts(
         const offsetX = x - cursorPosition.x;
         const offsetZ = z - cursorPosition.z;
         const distance = Math.max(Math.hypot(offsetX, offsetZ), 0.001);
-        const push = Math.max(0, 1 - distance / 5) * ghost.hover.value * 0.5;
-        const positionX = x + (offsetX / distance) * push;
-        const positionZ = z + (offsetZ / distance) * push;
-        const positionY = y + push * 0.35;
+        const hoverRadius = Math.max(settings.hoverRadius.value, 0.001);
+        const push =
+          Math.max(0, 1 - distance / hoverRadius) * ghost.hover.value * settings.hoverPush.value;
+        const hoverX = x + (offsetX / distance) * push;
+        const hoverZ = z + (offsetZ / distance) * push;
+        const hoverY = y + push * 0.35;
 
         const scale = entry * (0.85 + 0.15 * entry);
 
-        ghost.group.position.set(positionX, positionY, positionZ);
-        ghost.group.rotation.y = Math.atan2(
-          camera.position.x - positionX,
-          camera.position.z - positionZ,
-        );
+        ghost.group.position.set(hoverX, hoverY, hoverZ);
+        ghost.group.rotation.y = Math.atan2(camera.position.x - hoverX, camera.position.z - hoverZ);
         ghost.group.scale.setScalar(scale);
 
         ghost.pivot.rotation.x = -ghost.hover.value * 0.06;
         ghost.pivot.rotation.z = Math.sin(elapsed * 0.9 + ghost.config.phase) * 0.035;
 
-        ghost.baseY.value = positionY;
+        ghost.baseY.value = hoverY;
         ghost.height.value = Math.max(ghost.config.height * scale, 0.001);
         ghost.mixer.update(delta * ghost.config.animationSpeed);
       }
