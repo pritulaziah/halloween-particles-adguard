@@ -261,8 +261,13 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
       const seconds = intro.time.value;
 
       for (const bat of bats) {
-        bat.orbitPhase += delta * bat.config.speed;
-        bat.bobPhase += delta * bat.config.bobSpeed;
+        const angerTarget = bat.hovered ? 1 : 0;
+        bat.anger += (angerTarget - bat.anger) * (1 - Math.exp(-delta * angerSpeed));
+
+        // Stop the orbit and the bob while the bat is angry. Only the wings and the eyes move.
+        const moveDelta = delta * (1 - bat.anger);
+        bat.orbitPhase += moveDelta * bat.config.speed;
+        bat.bobPhase += moveDelta * bat.config.bobSpeed;
 
         const entry = introStep(seconds, bat.config.entryDelay, bat.config.entryDuration);
         const orbitX = bat.config.center.x + Math.cos(bat.orbitPhase) * bat.config.radius;
@@ -277,8 +282,6 @@ export function createBats(scene: THREE.Scene, camera: THREE.Camera, intro: Intr
 
         bat.group.position.set(x, y, z);
 
-        const angerTarget = bat.hovered ? 1 : 0;
-        bat.anger += (angerTarget - bat.anger) * (1 - Math.exp(-delta * angerSpeed));
         applyEyeColor(bat.anger, bat.eyeMaterial.color);
 
         bat.group.scale.setScalar(bat.config.scale * entry);
