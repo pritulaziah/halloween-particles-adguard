@@ -24,10 +24,9 @@ import {
 } from 'three/tsl';
 import type { Intro } from '../core/intro';
 import { introDuration } from '../core/intro';
+import type { Quality } from '../core/quality';
 import { loadPumpkin } from './pumpkin';
 import { createWordTargets } from './word-targets';
-
-const count = 8000;
 
 /** The width of the word at full scale, in world units. */
 const wordWidth = 15.5;
@@ -97,8 +96,10 @@ export async function createWordParticles(
   scene: THREE.Scene,
   renderer: THREE.WebGPURenderer,
   intro: Intro,
+  quality: Quality,
   onProgress?: (progress: number) => void,
 ): Promise<WordParticles> {
+  const count = quality.particleCount;
   const targets = createWordTargets('ADGUARD', {
     count,
     depth: 1.1,
@@ -321,8 +322,8 @@ export async function createWordParticles(
     .add(emissiveColor.mul(heat));
 
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
+  mesh.castShadow = quality.shadows;
+  mesh.receiveShadow = quality.shadows;
   mesh.frustumCulled = false;
   mesh.count = count;
   scene.add(mesh);

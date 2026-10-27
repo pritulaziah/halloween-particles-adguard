@@ -16,6 +16,7 @@ export function watchSizes(
   sizes: Sizes,
   camera: PerspectiveCamera,
   renderer: WebGPURenderer,
+  maxPixelRatio: number,
 ): void {
   window.addEventListener('resize', () => {
     sizes.width = window.innerWidth;
@@ -25,6 +26,6 @@ export function watchSizes(
     camera.updateProjectionMatrix();
 
     renderer.setSize(sizes.width, sizes.height, false);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
   });
 }

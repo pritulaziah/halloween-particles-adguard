@@ -1,13 +1,14 @@
 import * as THREE from 'three/webgpu';
+import type { Quality } from '../core/quality';
 
 export interface Lights {
   directionalLight: THREE.DirectionalLight;
   ambientLight: THREE.AmbientLight;
 }
 
-export function createLights(scene: THREE.Scene): Lights {
+export function createLights(scene: THREE.Scene, quality: Quality): Lights {
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-  directionalLight.castShadow = true;
+  directionalLight.castShadow = quality.shadows;
   directionalLight.position.set(1, 1, 0.75).normalize().multiplyScalar(8);
   directionalLight.shadow.camera.far = 16;
   directionalLight.shadow.camera.top = 8;

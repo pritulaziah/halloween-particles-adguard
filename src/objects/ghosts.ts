@@ -48,6 +48,9 @@ interface GhostConfig {
 type FloatUniform = UniformNode<'float', number>;
 type ColorUniform = UniformNode<'color', THREE.Color>;
 
+/** The ghost stays this far from the visible edge, in world units. */
+const ghostEdgeMargin = 1.6;
+
 export interface GhostSettings {
   /** Opacity of the ghost body in the idle state. */
   opacity: FloatUniform;
@@ -222,7 +225,7 @@ function createGhostMaterial(
 
 export async function createGhosts(
   scene: THREE.Scene,
-  camera: THREE.Camera,
+  camera: THREE.PerspectiveCamera,
   intro: Intro,
   onProgress?: (progress: number) => void,
 ): Promise<Ghosts> {
@@ -350,6 +353,7 @@ export async function createGhosts(
     update(delta, elapsed, cursorPosition) {
       const seconds = intro.time.value;
       const fade = 1 - Math.exp(-delta * settings.hoverFadeSpeed.value);
+      const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
 
       for (const ghost of ghosts) {
         ghost.hoverHold = Math.max(0, ghost.hoverHold - delta);
@@ -359,7 +363,12 @@ export async function createGhosts(
         ghost.appear.value = entry;
 
         const angle = ghost.config.phase + elapsed * ghost.config.speed;
-        const x = ghost.config.base.x + Math.cos(angle) * ghost.config.radiusX;
+        // On narrow screens the ghost moves to the visible edge, so it stays in the frame.
+        const depth = Math.max(camera.position.z - ghost.config.base.z, 1);
+        const halfWidth = tanHalfFov * depth * camera.aspect;
+        const edgeLimit = Math.max(halfWidth - ghostEdgeMargin, 0);
+        const edge = Math.min(Math.abs(ghost.config.base.x), edgeLimit);
+        const x = Math.sign(ghost.config.base.x) * edge + Math.cos(angle) * ghost.config.radiusX;
         const z = ghost.config.base.z + Math.sin(angle) * ghost.config.radiusZ;
         const bob = Math.sin(elapsed * 0.8 + ghost.config.phase) * ghost.config.bob;
         const bobSmall = Math.sin(elapsed * 1.9 + ghost.config.phase * 2) * ghost.config.bob * 0.35;

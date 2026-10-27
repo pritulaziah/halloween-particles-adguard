@@ -7,6 +7,7 @@ import { setupMusicToggle } from './core/music';
 import { createPostProcessing } from './core/post-processing';
 import { createPreloader } from './core/preloader';
 import { createRenderer } from './core/renderer';
+import { createQuality } from './core/quality';
 import { createSizes, watchSizes } from './core/sizes';
 import { createLights } from './lights/lights';
 import { createAtmosphere } from './objects/atmosphere';
@@ -42,6 +43,11 @@ const intro = createIntro();
 const sizes = createSizes();
 
 /**
+ * Quality
+ */
+const quality = createQuality();
+
+/**
  * Camera
  */
 const camera = createCamera(sizes);
@@ -52,12 +58,12 @@ const controls = createControls(camera, sizes, intro);
 /**
  * Renderer
  */
-const renderer = createRenderer(canvas, sizes);
+const renderer = createRenderer(canvas, sizes, quality);
 
 await renderer.init();
 rendererTask.done();
 
-watchSizes(sizes, camera, renderer);
+watchSizes(sizes, camera, renderer, quality.pixelRatio);
 
 /**
  * Post processing
@@ -67,7 +73,7 @@ const postProcessing = createPostProcessing(renderer, scene, camera);
 /**
  * Lights
  */
-createLights(scene);
+createLights(scene, quality);
 
 /**
  * Atmosphere
@@ -83,7 +89,7 @@ const cursor = createCursor(sizes, camera);
 /**
  * Word particles
  */
-const wordParticles = await createWordParticles(scene, renderer, intro, (progress) =>
+const wordParticles = await createWordParticles(scene, renderer, intro, quality, (progress) =>
   pumpkinTask.report(progress),
 );
 pumpkinTask.done();
