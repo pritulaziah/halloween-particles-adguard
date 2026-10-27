@@ -111,8 +111,9 @@ const tick = (timestamp: number) => {
 
   controls.update(delta);
   camera.updateMatrixWorld();
+  wordParticles.fit(camera, controls.getRestingDistance());
   atmosphere.update();
-  cursor.update();
+  cursor.update(delta);
 
   ghosts.update(delta, elapsed, cursor.position);
   bats.update(delta);

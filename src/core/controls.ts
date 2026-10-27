@@ -28,12 +28,17 @@ export interface CameraSettings {
 
 export interface CameraControls {
   settings: CameraSettings;
+  /** The camera distance without the intro dolly. */
+  getRestingDistance(): number;
   update(delta: number): void;
 }
 
 const minCameraDistance = 20;
 const maxCameraDistance = 34;
 const responsiveFactor = 55;
+/** Pointer parallax is off below this aspect and full above the second value. */
+const parallaxMinAspect = 0.6;
+const parallaxFullAspect = 1.8;
 
 const defaultSettings: CameraSettings = {
   distance: 25,
@@ -49,6 +54,11 @@ const defaultSettings: CameraSettings = {
   pointerDamping: 3,
   distanceDamping: 4,
 };
+
+/** On narrow screens the camera moves back, so the scene stays in the frame. */
+function getResponsiveDistance(distance: number, aspect: number): number {
+  return aspect < 1 ? distance + (1 - aspect) * responsiveFactor : distance;
+}
 
 /**
  * A limited camera rig. It replaces free orbiting with pointer parallax and wheel zoom.
@@ -86,6 +96,10 @@ export function createControls(
   return {
     settings,
 
+    getRestingDistance() {
+      return getResponsiveDistance(settings.distance, camera.aspect);
+    },
+
     update(delta) {
       elapsed += delta;
       smoothPointer.x = THREE.MathUtils.damp(
@@ -101,13 +115,18 @@ export function createControls(
         delta,
       );
 
-      // On narrow screens the camera moves back, so the word stays in the frame.
-      const responsiveBase =
-        camera.aspect < 1 ? settings.distance + (1 - camera.aspect) * responsiveFactor : 0;
+      // On narrow screens the camera moves back, so the scene stays in the frame.
       const dolly = 1 - introStep(intro.time.value, introDuration * 0.04, settings.dollyDuration);
       const goalDistance =
-        Math.max(settings.distance, responsiveBase) + dolly * settings.dollyDistance;
+        getResponsiveDistance(settings.distance, camera.aspect) + dolly * settings.dollyDistance;
       distance = THREE.MathUtils.damp(distance, goalDistance, settings.distanceDamping, delta);
+
+      // The pointer parallax is a mouse effect. On narrow screens it moves the word out of the frame.
+      const parallaxScale = THREE.MathUtils.smoothstep(
+        camera.aspect,
+        parallaxMinAspect,
+        parallaxFullAspect,
+      );
 
       // A slow drift keeps the scene alive when the pointer does not move.
       const driftX = Math.sin(elapsed * 0.09) * 0.5 * settings.drift;
@@ -115,13 +134,13 @@ export function createControls(
       const driftZ = Math.cos(elapsed * 0.07) * 0.3 * settings.drift;
 
       camera.position.set(
-        driftX + smoothPointer.x * settings.parallaxX,
-        settings.height + driftY - smoothPointer.y * settings.parallaxY,
+        driftX + smoothPointer.x * settings.parallaxX * parallaxScale,
+        settings.height + driftY - smoothPointer.y * settings.parallaxY * parallaxScale,
         distance + driftZ,
       );
       camera.lookAt(
-        target.x + smoothPointer.x * settings.lookX,
-        settings.lookHeight - smoothPointer.y * settings.lookY,
+        target.x + smoothPointer.x * settings.lookX * parallaxScale,
+        settings.lookHeight - smoothPointer.y * settings.lookY * parallaxScale,
         target.z,
       );
     },

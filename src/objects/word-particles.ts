@@ -29,6 +29,11 @@ import { createWordTargets } from './word-targets';
 
 const count = 8000;
 
+/** The width of the word at full scale, in world units. */
+const wordWidth = 15.5;
+/** The part of the viewport width that the word can use. */
+const wordViewportFraction = 0.85;
+
 /** The pumpkins start on a shell around the word. */
 const spawnRadiusMin = 8;
 const spawnRadiusMax = 17;
@@ -50,6 +55,8 @@ export interface WordParticles {
   gatherDamping: UniformNode<'float', number>;
   gatherSwirl: UniformNode<'float', number>;
   update(cursorPosition: THREE.Vector3, cursorVelocity: THREE.Vector3): void;
+  /** Scale the word so that it fits the viewport width. */
+  fit(camera: THREE.PerspectiveCamera, distance: number): void;
   /** Move the pumpkins back to their start positions. */
   restart(): void;
 }
@@ -95,7 +102,7 @@ export async function createWordParticles(
   const targets = createWordTargets('ADGUARD', {
     count,
     depth: 1.1,
-    worldWidth: 15.5,
+    worldWidth: wordWidth,
     heightScale: 1.5,
   });
 
@@ -330,13 +337,23 @@ export async function createWordParticles(
     gatherSwirl,
 
     update(cursorPosition, cursorVelocity) {
-      cursorPositionUniform.value.copy(cursorPosition);
-      cursorVelocityUniform.value.copy(cursorVelocity);
+      // The word mesh is scaled to fit the viewport. Move the cursor to the mesh space.
+      const scale = mesh.scale.x;
+      cursorPositionUniform.value.copy(cursorPosition).divideScalar(scale);
+      cursorVelocityUniform.value.copy(cursorVelocity).divideScalar(scale);
       renderer.compute(updateCompute);
 
       if (introTime.value < introDuration) {
         renderer.compute(introCompute);
       }
+    },
+
+    fit(camera, distance) {
+      const visibleHeight = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+      const targetWidth = visibleHeight * camera.aspect * wordViewportFraction;
+
+      // Wide screens show the word at full size. Narrow screens scale it down.
+      mesh.scale.setScalar(Math.min(1, targetWidth / wordWidth));
     },
 
     restart() {
